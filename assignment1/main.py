@@ -8,4 +8,6 @@ if __name__ == "__main__":
     bracket_list = []
     sh.bracket_split(inp, 0, 0, bracket_list) # also checks for bracket err
     #inp = sh.remove_excess_brackets(inp, bracket_list)
+    expr = sh.Expression(inp,0)
+    sh.print_expr_tree("",expr,False)
     print(inp)

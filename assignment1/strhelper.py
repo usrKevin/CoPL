@@ -13,7 +13,21 @@ def check_var(s:str,index:int = -1):
     if len(s) == 0: do_err("Empty var",index)
     if s[0] not in ALPHA: do_err("Var must start with a letter",index)
     for c in s:
+        if c == '(' or c == ')': break
         if c not in ALLCHAR: do_err("Illegal var name",index)
+
+def find_closing_bracket(s:str) -> int:
+    open_count = 0
+    for i in range(len(s)):
+        #print(f"{s} | {s[i]} | {open_count}")
+        if s[i] == '(': open_count += 1
+        elif s[i] == ')':
+            open_count -= 1
+            if open_count == 0:
+                return i
+    do_err("Too many open brackets!")
+
+
 
 class Expression: pass # for type hinting
 class Expression:
@@ -27,23 +41,35 @@ class Expression:
     def __init__(self, content: str, index: int):
         self.index = index
         self.content = content
-        if len(content) == 0: do_err("Empty expression",index)
-        if content.count(' ') == 0:
-            self.is_var = True
-            check_var(content,index)
+        if len(content) == 0: pass
         elif content[0] == '\\':
             self.is_lambda = True
             spl = content.find(' ')
             is_bracket = False
-            if content.find('(') < spl:
+            if content.find('(') < spl or spl == -1:
                 spl = content.find('(')
                 is_bracket = True
             var_str = content[1:spl]
             if not is_bracket: spl += 1
             check_var(var_str,index+1)
             self.var = var_str
-            self.expr1 = Expression(content[spl:index+len(content)])
+            self.expr1 = Expression(content[spl:index+len(content)],index+spl)
+        elif content[0] == '(':
+            closing_index = find_closing_bracket(content)
+            if len(content) - 1 == closing_index:
+                self.expr1 = Expression(content[1:closing_index],index+1)
+            else:
+                self.expr1 = Expression(content[0:closing_index+1],index)
+                self.expr2 = Expression(content[closing_index+1:len(content)], closing_index+index+1)
+        elif content.count(' ') == 0:
+            self.is_var = True
+            check_var(content,index)
 
+def print_expr_tree(prefix:str, expr:Expression, is_left:bool):
+    if expr is None: return
+    print(prefix + ("├──" if is_left else "└──") + expr.content)
+    print_expr_tree(prefix + ("│   " if is_left else "    "), expr.expr1, True)
+    print_expr_tree(prefix + ("│   " if is_left else "    "), expr.expr2, False)
 
 def remove_excess_spaces(s:str) -> str:
     # remove excess spaces
