@@ -1,13 +1,18 @@
-import strhelper as sh
+import strhelper as sh, sys
 
-#git push --set-upstream origin main
+DEBUG = True
 
 if __name__ == "__main__":
-    inp = input()
-    inp = sh.remove_excess_spaces(inp) # remove spaces
-    bracket_list = []
-    sh.bracket_split(inp, 0, 0, bracket_list) # also checks for bracket err
-    #inp = sh.remove_excess_brackets(inp, bracket_list)
-    expr = sh.Expression(inp,0)
-    sh.print_expr_tree("",expr,False)
-    print(inp)
+    times = 0
+    if len(sys.argv) != 2:
+        print("ERROR: No file argument or too many arguments were given", file=sys.stderr)
+        exit(1)
+    with open(sys.argv[1],"r") as f: lines = f.readlines()
+    for line in lines:
+        inp = line.replace('\n','').replace('\r','') # remove \r for windows to linux and the extra \n
+        inp = sh.remove_excess_spaces(inp) # remove spaces
+        expr = sh.Expression(inp,0)
+        if DEBUG:
+            print(inp)
+            sh.print_expr_tree("",expr,False)
+            print()

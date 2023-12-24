@@ -1,25 +1,28 @@
 import sys
 
+# init used characters
 ALPHA = "abcdefghijklmnopqrstuvwxyz"
 NUM = "0123456789"
 ALLCHAR = ALPHA + NUM
 
+# function for handling errors
 def do_err(reason:str = "Something went wrong", index:int = -1):
     print("ERROR: " + reason + (f" | at char: {index}" if index >= 0 else ""), file=sys.stderr)
     exit(1)
 
-
+# checks if given string is a legal var
 def check_var(s:str,index:int = -1):
     if len(s) == 0: do_err("Empty var",index)
-    if s[0] not in ALPHA: do_err("Var must start with a letter",index)
+    if s[0] not in ALPHA: do_err("Var must start with a letter",index) # must start with letter
+    # check if the var only contains legal characters stop at ( or )
     for c in s:
         if c == '(' or c == ')': break
         if c not in ALLCHAR: do_err("Illegal var name",index)
 
+# find index of closing bracket which belongs to the opening bracket at char 0
 def find_closing_bracket(s:str) -> int:
     open_count = 0
     for i in range(len(s)):
-        #print(f"{s} | {s[i]} | {open_count}")
         if s[i] == '(': open_count += 1
         elif s[i] == ')':
             open_count -= 1
@@ -27,45 +30,74 @@ def find_closing_bracket(s:str) -> int:
                 return i
     do_err("Too many open brackets!")
 
-
-
 class Expression: pass # for type hinting
-class Expression:
+class Expression: # class used for making a binary tree of tokens, recursively
+    # for expressions with only 1 child like 'expr = (expr)' only expr1 is used
     expr1:Expression = None
     expr2:Expression = None
     var:str = ""
+    # types of expression (var also counts as expression to keep it simple)
     is_lambda:bool = False
     is_var:bool = False
+    is_applies:bool = False
 
-
-    def __init__(self, content: str, index: int):
+    def __init__(self, content: str, index: int, is_abstract:bool = False):
         self.index = index
         self.content = content
         if len(content) == 0: pass
-        elif content[0] == '\\':
-            self.is_lambda = True
+        elif content[0] == '\\': # for lambda expressions
+            # find the var (spaces between \ and var have already been removed)
             spl = content.find(' ')
             is_bracket = False
-            if content.find('(') < spl or spl == -1:
-                spl = content.find('(')
+            # check if var and expr are separated by ( or space
+            l_bracket_index = content.find('(')
+            if l_bracket_index != -1 and (l_bracket_index < spl or spl == -1):
+                spl = l_bracket_index
                 is_bracket = True
-            var_str = content[1:spl]
-            if not is_bracket: spl += 1
-            check_var(var_str,index+1)
-            self.var = var_str
-            self.expr1 = Expression(content[spl:index+len(content)],index+spl)
+
+            if is_abstract: # (\x a b)
+                self.is_lambda = True # set type
+
+                var_str = content[1:spl] # copy var out
+                if not is_bracket: spl += 1 # if the seperation is done by a space we jump it
+                check_var(var_str,index+1) # check if its legal
+                self.var = var_str
+                self.expr1 = Expression(content[spl:len(content)],index+spl) # define expression via recursion
+            else: # '\x a' b
+                if not is_bracket and content.count(' ') < 2:
+                    self.expr1 = Expression(content,index, True)
+                elif is_bracket:
+                    closing_index = l_bracket_index + find_closing_bracket(content[l_bracket_index:]) + 1
+                    self.expr1 = Expression(content[:closing_index],index, True)
+                    self.expr2 = Expression(content[closing_index:], index + closing_index)
+                else:
+                    spl += 1
+                    closing_index = content.find(' ') + 1 + content[content.find(' ') + 1:].find(' ') # find 2nd ' '
+                    self.expr1 = Expression(content[:closing_index],index, True)
+                    self.expr2 = Expression(content[closing_index + 1:], index + closing_index)
+
         elif content[0] == '(':
             closing_index = find_closing_bracket(content)
-            if len(content) - 1 == closing_index:
-                self.expr1 = Expression(content[1:closing_index],index+1)
-            else:
+            if len(content) - 1 == closing_index: # check if there is only one (expr) and not (expr)(expr)
+                self.expr1 = Expression(content[1:closing_index],index+1, True) # top is bracket (for lambda abstraction)
+            else: # else we have to cut them into 2 expressions
                 self.expr1 = Expression(content[0:closing_index+1],index)
                 self.expr2 = Expression(content[closing_index+1:len(content)], closing_index+index+1)
-        elif content.count(' ') == 0:
+        elif content.count(' ') == 0 and content.count('(') == 0: # check if its truly solely a var
             self.is_var = True
             check_var(content,index)
+            self.var = content
+        else: # for 2 expressions next to each other
+            l_bracket_index = content.find('(')
+            if l_bracket_index != -1: # for for example: "expr(expr)"
+                self.expr1 = Expression(content[0:l_bracket_index],index)
+                self.expr2 = Expression(content[l_bracket_index:len(content)], l_bracket_index+index)
+            else: # for for example: "expr expr"
+                space_index = content.find(' ')
+                self.expr1 = Expression(content[0:space_index],index)
+                self.expr2 = Expression(content[space_index+1:len(content)], space_index+index+1)
 
-def print_expr_tree(prefix:str, expr:Expression, is_left:bool):
+def print_expr_tree(prefix:str, expr:Expression, is_left:bool): # prints binary tree using BT (for debug)
     if expr is None: return
     print(prefix + ("├──" if is_left else "└──") + expr.content)
     print_expr_tree(prefix + ("│   " if is_left else "    "), expr.expr1, True)
@@ -107,7 +139,7 @@ def remove_excess_spaces(s:str) -> str:
     while i < len(l):
         if l[i] == '\\':
             is_lambda = True
-        elif i+1<len(l) and l[i]+l[i+1] == '  ':
+        elif l[i] == ' ':
             if is_lambda:
                 l.pop(i)
                 continue
@@ -115,19 +147,3 @@ def remove_excess_spaces(s:str) -> str:
             is_lambda = False
         i += 1
     return "".join(l)
-
-def bracket_split(s:str, index:int, level:int, l:list) -> int:
-    while index < len(s):
-        if s[index] == '(':
-            new_index = bracket_split(s,index + 1, level + 1, l)
-            if index + 1 == new_index or s[index + 1:new_index] == ' ':
-                do_err("Brackets without content",index)
-            new_el = (level,s[index + 1:new_index],index)
-            l.append(new_el)
-            #if parent is not None: parent.children.append(new_el)
-            index = new_index
-        elif s[index] == ')':
-            if level == 0: do_err("Too many closed brackets",index)
-            return index
-        index += 1
-    if level != 0: do_err("Too many open brackets", index)
