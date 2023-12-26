@@ -44,7 +44,7 @@ def generate_new_var(bound_vars:list, free_vars:list, free_vars1:list) -> str:
                 return current_string
         length += 1
 
-def deep_tree_copy(to_copy:sh.Expression, top:sh.Expression) -> sh.Expression:
+def tree_copy(to_copy:sh.Expression, top:sh.Expression, deep:bool = True) -> sh.Expression:
     if to_copy is None:
         return None
     new_obj = sh.Expression()
@@ -58,7 +58,8 @@ def deep_tree_copy(to_copy:sh.Expression, top:sh.Expression) -> sh.Expression:
     # fill in tree values
     new_obj.top = top
     ## recursion to reach the rest of the tree
-    new_obj.expr1 = deep_tree_copy(to_copy.expr1,new_obj)
-    new_obj.expr2 = deep_tree_copy(to_copy.expr2,new_obj)
+    if deep:
+        new_obj.expr1 = tree_copy(to_copy.expr1,new_obj,True)
+        new_obj.expr2 = tree_copy(to_copy.expr2,new_obj,True)
     return new_obj
 
