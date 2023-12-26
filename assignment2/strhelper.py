@@ -32,23 +32,9 @@ def find_closing_bracket(s:str) -> int:
 
 class Expression: pass # for type hinting
 class Expression: # class used for making a binary tree of tokens, recursively
-    def __int__(self):
-        self.index = -1
-        self.content = ""
-
-        # for expressions with only 1 child like 'expr = (expr)' only expr1 is used
-        self.expr1:Expression = None
-        self.expr2:Expression = None
-        self.top = None
-        # types of expression (var also counts as expression to keep it simple)
-        self.is_lambda:bool = False
-        self.is_var:bool = False
-        self.has_lambda:bool = False
-        self.var:str = ""
-    def __init__(self, content: str, index: int, top:Expression, is_abstract:bool = False):
+    def __init__(self, content: str = "", index: int = -1, top:Expression = None, is_abstract:bool = False):
         self.index = index
         self.content = content
-
         # for expressions with only 1 child like 'expr = (expr)' only expr1 is used
         self.expr1:Expression = None
         self.expr2:Expression = None
@@ -59,7 +45,8 @@ class Expression: # class used for making a binary tree of tokens, recursively
         self.has_lambda:bool = False
         self.var:str = ""
 
-        if len(content) == 0: pass
+        if index == -1 or len(content) == 0: # end here if empty constructor
+            return
         elif content[0] == '\\': # for lambda expressions
             # find the var (spaces between \ and var have already been removed)
             spl = content.find(' ')
@@ -77,7 +64,7 @@ class Expression: # class used for making a binary tree of tokens, recursively
                 if not is_bracket: spl += 1 # if the seperation is done by a space we jump it
                 check_var(var_str,index+1) # check if its legal
                 self.var = var_str
-                self.expr1 = Expression(content[spl:len(content)],index+spl) # define expression via recursion
+                self.expr1 = Expression(content[spl:len(content)],index+spl,self) # define expression via recursion
             else: # '\x a' b
                 if not is_bracket and content.count(' ') < 2:
                     self.expr1 = Expression(content,index, self, True)
@@ -85,21 +72,21 @@ class Expression: # class used for making a binary tree of tokens, recursively
                     self.has_lamda = True
                     closing_index = l_bracket_index + find_closing_bracket(content[l_bracket_index:]) + 1
                     self.expr1 = Expression(content[:closing_index],index, self, True)
-                    self.expr2 = Expression(content[closing_index:], index + closing_index)
+                    self.expr2 = Expression(content[closing_index:], index + closing_index,self)
                 else:
                     self.has_lamda = True
                     spl += 1
                     closing_index = content.find(' ') + 1 + content[content.find(' ') + 1:].find(' ') # find 2nd ' '
                     self.expr1 = Expression(content[:closing_index],index, self, True)
-                    self.expr2 = Expression(content[closing_index + 1:], index + closing_index)
+                    self.expr2 = Expression(content[closing_index + 1:], index + closing_index,self)
 
         elif content[0] == '(':
             closing_index = find_closing_bracket(content)
             if len(content) - 1 == closing_index: # check if there is only one (expr) and not (expr)(expr)
                 self.expr1 = Expression(content[1:closing_index],index+1, self, True) # top is bracket (for lambda abstraction)
             else: # else we have to cut them into 2 expressions
-                self.expr1 = Expression(content[0:closing_index+1],index)
-                self.expr2 = Expression(content[closing_index+1:len(content)], closing_index+index+1)
+                self.expr1 = Expression(content[0:closing_index+1],index,self)
+                self.expr2 = Expression(content[closing_index+1:len(content)], closing_index+index+1,self)
         elif content.count(' ') == 0 and content.count('(') == 0: # check if its truly solely a var
             self.is_var = True
             check_var(content,index)
@@ -107,14 +94,14 @@ class Expression: # class used for making a binary tree of tokens, recursively
         else: # for 2 expressions next to each other
             l_bracket_index = content.find('(')
             if l_bracket_index != -1: # for for example: "expr(expr)"
-                self.expr1 = Expression(content[0:l_bracket_index],index)
-                self.expr2 = Expression(content[l_bracket_index:len(content)], l_bracket_index+index)
-                self.has_lambda = self.expr1.is_lambda
+                self.expr1 = Expression(content[0:l_bracket_index],index,self)
+                self.expr2 = Expression(content[l_bracket_index:len(content)], l_bracket_index+index,self)
             else: # for for example: "expr expr"
                 space_index = content.find(' ')
-                self.expr1 = Expression(content[0:space_index],index)
-                self.expr2 = Expression(content[space_index+1:len(content)], space_index+index+1)
-                self.has_lambda = self.expr1.is_lambda
+                self.expr1 = Expression(content[0:space_index],index,self)
+                self.expr2 = Expression(content[space_index+1:len(content)], space_index+index+1,self)
+        if not self.is_var:
+            self.has_lambda = self.expr1.is_lambda
 
 def print_expr_tree(prefix:str, expr:Expression, is_left:bool): # prints binary tree using BT (for debug)
     if expr is None: return
@@ -167,3 +154,20 @@ def remove_excess_spaces(s:str) -> str:
         i += 1
     return "".join(l)
 
+def tree_to_str(expr:Expression) -> str:
+    if expr.is_lambda:
+        if expr.expr1.is_var:
+            return "\\" + expr.var + " " + tree_to_str(expr.expr1)
+        else:
+            return "(\\" + expr.var + " " + tree_to_str(expr.expr1) + ")"
+    if expr.is_var:
+        return expr.var
+    if expr.expr2 is None:
+        return f"{tree_to_str(expr.expr1)}"
+    else:
+        if expr.expr1.is_var:
+            return f"{tree_to_str(expr.expr1)}({tree_to_str(expr.expr2)})"
+        elif expr.expr2.is_var:
+            return f"({tree_to_str(expr.expr1)}){tree_to_str(expr.expr2)}"
+        else:
+            return f"({tree_to_str(expr.expr1)})({tree_to_str(expr.expr2)})"

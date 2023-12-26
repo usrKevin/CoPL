@@ -1,6 +1,6 @@
-import strhelper as sh, sys
+import strhelper as sh, sys, interpreter
 
-DEBUG = False
+DEBUG = True
 
 if __name__ == "__main__":
     times = 0
@@ -12,7 +12,11 @@ if __name__ == "__main__":
         inp = line.replace('\n','').replace('\r','') # remove \r for windows to linux and the extra \n
         inp = sh.remove_excess_spaces(inp) # remove spaces
         expr = sh.Expression(inp,0,None,False)
+        sh.print_expr_tree("",expr,False)
+        expr = interpreter.b_reduction(expr)
+
         if DEBUG:
-            print(inp)
+            #print(inp)
+            #print(sh.tree_to_str(expr))
             sh.print_expr_tree("",expr,False)
             print()
