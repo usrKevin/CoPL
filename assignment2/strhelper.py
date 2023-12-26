@@ -32,18 +32,33 @@ def find_closing_bracket(s:str) -> int:
 
 class Expression: pass # for type hinting
 class Expression: # class used for making a binary tree of tokens, recursively
-    # for expressions with only 1 child like 'expr = (expr)' only expr1 is used
-    expr1:Expression = None
-    expr2:Expression = None
-    var:str = ""
-    # types of expression (var also counts as expression to keep it simple)
-    is_lambda:bool = False
-    is_var:bool = False
-    is_applies:bool = False
+    def __int__(self):
+        self.index = -1
+        self.content = ""
 
-    def __init__(self, content: str, index: int, is_abstract:bool = False):
+        # for expressions with only 1 child like 'expr = (expr)' only expr1 is used
+        self.expr1:Expression = None
+        self.expr2:Expression = None
+        self.top = None
+        # types of expression (var also counts as expression to keep it simple)
+        self.is_lambda:bool = False
+        self.is_var:bool = False
+        self.has_lambda:bool = False
+        self.var:str = ""
+    def __init__(self, content: str, index: int, top:Expression, is_abstract:bool = False):
         self.index = index
         self.content = content
+
+        # for expressions with only 1 child like 'expr = (expr)' only expr1 is used
+        self.expr1:Expression = None
+        self.expr2:Expression = None
+        self.top = top
+        # types of expression (var also counts as expression to keep it simple)
+        self.is_lambda:bool = False
+        self.is_var:bool = False
+        self.has_lambda:bool = False
+        self.var:str = ""
+
         if len(content) == 0: pass
         elif content[0] == '\\': # for lambda expressions
             # find the var (spaces between \ and var have already been removed)
@@ -65,21 +80,23 @@ class Expression: # class used for making a binary tree of tokens, recursively
                 self.expr1 = Expression(content[spl:len(content)],index+spl) # define expression via recursion
             else: # '\x a' b
                 if not is_bracket and content.count(' ') < 2:
-                    self.expr1 = Expression(content,index, True)
+                    self.expr1 = Expression(content,index, self, True)
                 elif is_bracket:
+                    self.has_lamda = True
                     closing_index = l_bracket_index + find_closing_bracket(content[l_bracket_index:]) + 1
-                    self.expr1 = Expression(content[:closing_index],index, True)
+                    self.expr1 = Expression(content[:closing_index],index, self, True)
                     self.expr2 = Expression(content[closing_index:], index + closing_index)
                 else:
+                    self.has_lamda = True
                     spl += 1
                     closing_index = content.find(' ') + 1 + content[content.find(' ') + 1:].find(' ') # find 2nd ' '
-                    self.expr1 = Expression(content[:closing_index],index, True)
+                    self.expr1 = Expression(content[:closing_index],index, self, True)
                     self.expr2 = Expression(content[closing_index + 1:], index + closing_index)
 
         elif content[0] == '(':
             closing_index = find_closing_bracket(content)
             if len(content) - 1 == closing_index: # check if there is only one (expr) and not (expr)(expr)
-                self.expr1 = Expression(content[1:closing_index],index+1, True) # top is bracket (for lambda abstraction)
+                self.expr1 = Expression(content[1:closing_index],index+1, self, True) # top is bracket (for lambda abstraction)
             else: # else we have to cut them into 2 expressions
                 self.expr1 = Expression(content[0:closing_index+1],index)
                 self.expr2 = Expression(content[closing_index+1:len(content)], closing_index+index+1)
@@ -92,10 +109,12 @@ class Expression: # class used for making a binary tree of tokens, recursively
             if l_bracket_index != -1: # for for example: "expr(expr)"
                 self.expr1 = Expression(content[0:l_bracket_index],index)
                 self.expr2 = Expression(content[l_bracket_index:len(content)], l_bracket_index+index)
+                self.has_lambda = self.expr1.is_lambda
             else: # for for example: "expr expr"
                 space_index = content.find(' ')
                 self.expr1 = Expression(content[0:space_index],index)
                 self.expr2 = Expression(content[space_index+1:len(content)], space_index+index+1)
+                self.has_lambda = self.expr1.is_lambda
 
 def print_expr_tree(prefix:str, expr:Expression, is_left:bool): # prints binary tree using BT (for debug)
     if expr is None: return
@@ -147,3 +166,4 @@ def remove_excess_spaces(s:str) -> str:
             is_lambda = False
         i += 1
     return "".join(l)
+
