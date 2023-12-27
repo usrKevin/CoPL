@@ -69,20 +69,17 @@ class Expression: # class used for making a binary tree of tokens, recursively
 
 
             if is_bracket:
+                print(1111)
                 self.expr1 = Expression(content[spl:closing_bracket+1],index+spl,self) # define expression via recursion
-            else:
+            elif is_abstract:
                 self.is_lambda = False
                 self.is_double = True
-                space_index = content.find(' ')
-
-                space_index2 = content[space_index+2:].find(' ')
-                print(space_index2+1+space_index)
-                if space_index2 == -1:
-                    print(space_index,"GGG",content)
-                space_index = space_index + space_index2
-
-                print(content, f"\'{content[0:space_index]}\' - \'{content[space_index+2:len(content)]}\'")
-                self.expr1 = Expression(content[0:space_index+2],index,self)
+                spl2 = content[spl:].find(' ') + spl
+                print(22,content[0:spl2],33)
+                self.expr1 = Expression(content[0:spl2],index+spl,self)
+                self.expr2 = Expression(content[spl2+1:len(content)],index+spl,self)
+            else:
+                self.expr1 = Expression(content[spl:len(content)],index,self)
                 #self.expr2 = Expression(content[space_index+2:len(content)],index+space_index+1,self)
 
 
