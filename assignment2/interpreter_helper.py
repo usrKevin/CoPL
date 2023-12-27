@@ -13,9 +13,12 @@ def collect_free_vars(expr:sh.Expression) -> list:
     return left
 
 def collect_bound_vars(expr:sh.Expression) -> list:
-    if expr.is_lambda: return [expr.var]
-    if expr.is_var: return []
-    left = collect_bound_vars(expr.expr1)
+    if expr is None:
+        return []
+    left = []
+    if expr.is_lambda:
+        left.append(expr.var)
+    left.extend(collect_bound_vars(expr.expr1))
     if expr.expr2 is not None:
         right = collect_bound_vars(expr.expr2)
         for el in right:

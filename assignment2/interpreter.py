@@ -21,7 +21,7 @@ def a_conversion(to_convert:sh.Expression, expr2:sh.Expression) -> bool:
     free1 = ih.collect_free_vars(to_convert)
     var = ""
     for el in bound:
-        if el in free and el in ih.ALPHA:
+        if el in free:
             var = el # intersection found a-conversion necessary
             break
     if var != "": # if necessary
@@ -34,7 +34,9 @@ def a_conversion(to_convert:sh.Expression, expr2:sh.Expression) -> bool:
 def find_and_substitute(expr:sh.Expression, to_substitute:sh.Expression, var:str) -> sh.Expression:
     if expr.is_var:
         if expr.var == var:
-            return ih.tree_copy(to_substitute,expr)
+            return ih.tree_copy(to_substitute,expr.top)
+        else:
+            return expr
     else:
         new_expr = ih.tree_copy(expr,expr.top,False)
         new_expr.expr1 = find_and_substitute(expr.expr1,to_substitute,var)
@@ -47,9 +49,10 @@ def b_reduction(expr:sh.Expression, debug:bool = False) -> sh.Expression:
     if expr.is_var:
         return expr
 
-    expr.expr1 = b_reduction(expr.expr1)
     if expr.expr2 is not None:
-        expr.expr2 = b_reduction(expr.expr2)
+        expr.expr2 = b_reduction(expr.expr2,debug)
+    expr.expr1 = b_reduction(expr.expr1,debug)
+
 
     expr_lambda = expr
     expr_sub = expr.expr2
@@ -59,6 +62,7 @@ def b_reduction(expr:sh.Expression, debug:bool = False) -> sh.Expression:
             tmp_expr = expr.top
             tmp_expr2 = tmp_expr
             while tmp_expr is not None and not tmp_expr.is_double and not tmp_expr.is_lambda:
+                if tmp_expr.top is None: break
                 tmp_expr = tmp_expr.top
                 if tmp_expr.expr2 is tmp_expr2:
                     tmp_expr = None
@@ -74,14 +78,14 @@ def b_reduction(expr:sh.Expression, debug:bool = False) -> sh.Expression:
             changed = a_conversion(expr_lambda,expr_sub)
 
             while changed:
+                new_content = sh.tree_to_str(expr)
                 if debug:
-                    new_content = sh.tree_to_str(expr)
                     print(f"#[a-conversion] {old_content} -> {new_content}")
-                    old_content = new_content
+                old_content = new_content
                 changed = a_conversion(expr_lambda,expr_sub) # if a-conversion was implied check if another one is possible
 
             new_expr = find_and_substitute(expr_lambda.expr1,expr_sub,expr_lambda.var)
-            new_content = sh.tree_to_str(expr)
+            new_content = sh.tree_to_str(new_expr)
             if old_content != new_content and debug and expr.top is None:
                 print(f"#[partial b-reduction] {old_content} -> {new_content}")
             return new_expr

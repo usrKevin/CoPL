@@ -4,7 +4,7 @@ DEBUG = True
 
 if __name__ == "__main__":
     if DEBUG:
-        print("#DEBUG output enabled, debug output marked with \'#\' at the beginning of the string")
+        print("#DEBUG output enabled, debug output marked with \'#\' at the beginning of the line")
     times = 0
     if len(sys.argv) != 2:
         print("ERROR: No file argument or too many arguments were given", file=sys.stderr)

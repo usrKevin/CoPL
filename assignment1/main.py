@@ -12,7 +12,6 @@ if __name__ == "__main__":
         inp = line.replace('\n','').replace('\r','') # remove \r for windows to linux and the extra \n
         inp = sh.remove_excess_spaces(inp) # remove spaces
         expr = sh.Expression(inp,0)
+        print(sh.tree_to_str(expr))
         if DEBUG:
-            print(inp)
-            sh.print_expr_tree("",expr,False)
-            print()
+            sh.print_expr_tree("#",expr,False)
