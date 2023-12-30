@@ -1,6 +1,6 @@
 import strhelper as sh, sys, interpreter
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == "__main__":
     if DEBUG:

@@ -1,6 +1,6 @@
 import strhelper as sh, sys
 
-DEBUG = True
+DEBUG = False
 
 if __name__ == "__main__":
     times = 0
