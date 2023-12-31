@@ -44,7 +44,7 @@ def find_and_substitute(expr:sh.Expression, to_substitute:sh.Expression, var:str
             new_expr.expr2 = find_and_substitute(expr.expr2,to_substitute,var)
         return new_expr
 
-
+# tries to apply b-reduction
 def b_reduction(expr:sh.Expression, debug:bool = False) -> sh.Expression:
     if expr.is_var:
         return expr
@@ -57,7 +57,10 @@ def b_reduction(expr:sh.Expression, debug:bool = False) -> sh.Expression:
     expr_lambda = expr
     expr_sub = expr.expr2
 
+    # check first if the expression is lambda
     if expr.is_lambda:
+        # if the lambda expression has no 2nd expression it could be in the brackets above
+        # so we search for it with a loop. If it doesnt exist no b-reduction is possible
         if expr_sub is None:
             tmp_expr = expr.top
             tmp_expr2 = tmp_expr
@@ -70,13 +73,14 @@ def b_reduction(expr:sh.Expression, debug:bool = False) -> sh.Expression:
                 tmp_expr2 = tmp_expr
             if tmp_expr is not None and tmp_expr.is_double:
                 expr_sub = tmp_expr.expr2
-
+        # if a 2nd expression is found we first check if a-conversion is necessary and apply it
         if expr_sub is not None:
             expr_sub.top.expr2 = None
 
             old_content = sh.tree_to_str(expr)
             changed = a_conversion(expr_lambda,expr_sub)
 
+            # if an a-conversion was applied we check if another iteration is necessary and apply it
             while changed:
                 new_content = sh.tree_to_str(expr)
                 if debug:
@@ -84,6 +88,7 @@ def b_reduction(expr:sh.Expression, debug:bool = False) -> sh.Expression:
                 old_content = new_content
                 changed = a_conversion(expr_lambda,expr_sub) # if a-conversion was implied check if another one is possible
 
+            # find the variables to substitue and substitute them
             new_expr = find_and_substitute(expr_lambda.expr1,expr_sub,expr_lambda.var)
             new_content = sh.tree_to_str(new_expr)
             if old_content != new_content and debug and expr.top is None:

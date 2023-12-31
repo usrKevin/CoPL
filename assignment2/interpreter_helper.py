@@ -2,6 +2,7 @@ import strhelper as sh
 
 ALPHA = "abcdefghijklmnopqrstuvwxyz"
 
+# searches for and collects all free variables
 def collect_free_vars(expr:sh.Expression) -> list:
     if expr.is_var: return [expr.var]
     left = collect_free_vars(expr.expr1)
@@ -12,6 +13,7 @@ def collect_free_vars(expr:sh.Expression) -> list:
                 left.append(el)
     return left
 
+# finds all bound variables
 def collect_bound_vars(expr:sh.Expression) -> list:
     if expr is None:
         return []
@@ -47,20 +49,20 @@ def generate_new_var(bound_vars:list, free_vars:list, free_vars1:list) -> str:
                 return current_string
         length += 1
 
+# deep or shallow copy of a subtree
 def tree_copy(to_copy:sh.Expression, top:sh.Expression, deep:bool = True) -> sh.Expression:
     if to_copy is None:
         return None
     new_obj = sh.Expression()
     # copy values over
     new_obj.content = to_copy.content
-    new_obj.index = to_copy.index
     new_obj.var = to_copy.var
     new_obj.is_var = to_copy.is_var
     new_obj.is_lambda = to_copy.is_lambda
     new_obj.has_lambda = to_copy.has_lambda
     # fill in tree values
     new_obj.top = top
-    ## recursion to reach the rest of the tree
+    # recursion to reach the rest of the tree if necessary
     if deep:
         new_obj.expr1 = tree_copy(to_copy.expr1,new_obj,True)
         new_obj.expr2 = tree_copy(to_copy.expr2,new_obj,True)
